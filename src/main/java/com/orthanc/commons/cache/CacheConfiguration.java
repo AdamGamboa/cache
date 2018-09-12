@@ -1,5 +1,7 @@
 package com.orthanc.commons.cache;
 
+import com.orthanc.commons.cache.di.CacheStoreInjector;
+import com.orthanc.commons.cache.di.DefaultCacheStoreInjector;
 import com.orthanc.commons.cache.event.CacheEntryCreatedListener;
 import com.orthanc.commons.cache.event.CacheEntryExpiredListener;
 import com.orthanc.commons.cache.event.CacheEntryListener;
@@ -19,9 +21,22 @@ public class CacheConfiguration<K, V> implements Serializable{
     
     private final List<CacheEntryListener <K,V>> listeners;
     private CacheExpiryPolicy cacheExpiryPolicy;
+    private CacheStoreInjector cacheStoreInjector;
     
     public CacheConfiguration(){
         this.listeners = new ArrayList<>();
+    }
+    
+    public CacheConfiguration<K,V> setCacheStoreInjector(CacheStoreInjector csi){
+        this.cacheStoreInjector = csi;
+        return this;
+    }
+    
+    public CacheStoreInjector<K,V> getCacheStoreInjector(){
+        if(this.cacheStoreInjector == null){
+            this.cacheStoreInjector = new DefaultCacheStoreInjector<>();
+        }
+        return this.cacheStoreInjector;
     }
     
     public CacheConfiguration<K,V> setExpiryPolicy(CacheExpiryPolicy policy){

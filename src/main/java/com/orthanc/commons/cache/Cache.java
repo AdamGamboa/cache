@@ -3,7 +3,6 @@ package com.orthanc.commons.cache;
 import java.io.Serializable;
 import java.time.Duration;
 import java.time.LocalDateTime;
-import java.util.HashMap;
 import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -18,15 +17,14 @@ public class Cache<K, V> implements Serializable {
     
     private static final Logger LOGGER = LoggerFactory.getLogger(Cache.class);
     
-    private final Map<K, CacheEntry<V>> data;
+    private Map<K, CacheEntry<V>> data;
     private CacheConfiguration cacheConfiguration;
 
     /**
      * Constructor
      *
-     */
-    public Cache() {
-        this.data = new HashMap<>();
+     */    
+    public Cache(){
     }
 
     //<<>><<>><<>><<>><<>><<>><<>><<>><<>><<>><<>><<>><<>><<>><<>><<>><<>>
@@ -104,9 +102,13 @@ public class Cache<K, V> implements Serializable {
             if (expiryPolicy.getAccessPolicy() != null) {
                 this.data.entrySet()
                         .removeIf(e -> {
-                            boolean toBeRemoved = e.getValue() != null
-                                    && Duration.between(e.getValue().getLastAccess(), LocalDateTime.now())
-                                    .compareTo(expiryPolicy.getAccessPolicy()) > 0;
+                            boolean toBeRemoved = e.getValue() != null 
+                                    && ((   e.getValue().getLastAccess() != null
+                                            && Duration.between(e.getValue().getLastAccess(), LocalDateTime.now())
+                                            .compareTo(expiryPolicy.getAccessPolicy()) > 0)
+                                        || (e.getValue().getLastAccess() == null
+                                            && Duration.between(e.getValue().getCreated(), LocalDateTime.now())
+                                            .compareTo(expiryPolicy.getAccessPolicy()) > 0 ));
                             if (toBeRemoved) {
                                 this.cacheConfiguration.fireCacheEntryExpiredEvent(e.getValue());
                                 this.cacheConfiguration.fireCacheEntryRemovedEvent(e.getKey(), e.getValue());
@@ -118,9 +120,13 @@ public class Cache<K, V> implements Serializable {
             if (expiryPolicy.getLastUpdatePolicy() != null) {
                 this.data.entrySet()
                         .removeIf(e -> {
-                            boolean toBeRemoved = e.getValue() != null
-                                    && Duration.between(e.getValue().getLastUpdate(), LocalDateTime.now())
-                                    .compareTo(expiryPolicy.getLastUpdatePolicy()) > 0;
+                            boolean toBeRemoved = e.getValue() != null 
+                                    && ((   e.getValue().getLastUpdate() != null
+                                            && Duration.between(e.getValue().getLastUpdate(), LocalDateTime.now())
+                                            .compareTo(expiryPolicy.getLastUpdatePolicy()) > 0)
+                                        ||( e.getValue().getLastUpdate() == null
+                                            && Duration.between(e.getValue().getCreated(), LocalDateTime.now())
+                                            .compareTo(expiryPolicy.getLastUpdatePolicy()) > 0));
                             if (toBeRemoved) {
                                 this.cacheConfiguration.fireCacheEntryExpiredEvent(e.getValue());
                                 this.cacheConfiguration.fireCacheEntryRemovedEvent(e.getKey(), e.getValue());
@@ -133,6 +139,7 @@ public class Cache<K, V> implements Serializable {
     
     public void setConfiguration(CacheConfiguration<K,V> config){
         this.cacheConfiguration = config;
+        this.data = this.cacheConfiguration.getCacheStoreInjector().getStore();
     }
 
     /**
