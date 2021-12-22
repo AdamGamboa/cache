@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
+import javax.annotation.PreDestroy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -121,4 +122,28 @@ public class CacheManager implements Serializable{
             LOGGER.error("ERROR refreshing the Cache Manager.",ex);
         }
     }
+    
+    /**
+     * Envia a cancelar las ejecuciones del time cuando se va a destruir el 
+     * singleton
+     */
+    @PreDestroy
+    public void onDestroy(){
+        try{
+            this.timer.cancel();
+            this.timer = null;
+        }catch(Exception ex){
+            LOGGER.error("Error deteniendo el Cache Manager Timer");
+        }
+    }
+    
+    @Override
+    public void finalize() throws Throwable{
+        if(this.timer != null){
+            onDestroy();
+        }
+        super.finalize();
+    }
+    
+    
 }
